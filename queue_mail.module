@@ -60,6 +60,7 @@ function queue_mail_mail_alter(&$message) {
       _queue_mail_get_queue()->createItem($message);
       // And prevent the message from being sent instantly.
       $message['send'] = FALSE;
+      $message['queued'] = TRUE; //added by Jon 180905
     }
   }
 }
@@ -79,6 +80,18 @@ function queue_mail_module_implements_alter(&$implementations, $hook) {
   }
 }
 
+//+++++++++++++++ added by Jon 180905 ++++++++++++++++
+function _queue_mail_get_minimum_time() {
+    $return = cache_get("queue_mail_minimum_time");
+
+    if ($return === FALSE) {
+       return 0;
+    }
+
+    return (float)$return->data;
+}
+//----------------added by Jon 180905-----------------
+
 /**
  * Email sending function, called via Drupal's queue processing.
  *
@@ -94,6 +107,47 @@ function queue_mail_module_implements_alter(&$implementations, $hook) {
  * @see queue_mail_mail_alter()
  */
 function queue_mail_send($message = array()) {
+
+
+ //+++++++++++++++ added by Jon 180905 ++++++++++++++++  
+  // Wait if needed
+  $wait = (float)variable_get('queue_mail_wait', 0);
+  if ($wait > 0) {
+    // Get the minimum time to wait
+    $queue_mail_minimum_time = _queue_mail_get_minimum_time();
+
+    // Loop until we succesfully changed the cached minimum time
+    while (true) {
+      // Sleep if needed
+      $now = microtime(TRUE);
+      if ($queue_mail_minimum_time > $now) {
+        usleep(($queue_mail_minimum_time - $now) * 1000000);
+      }
+
+      // Now, lock and update the value
+      if (lock_acquire("queue_mail_minimum_time", $wait)) {
+        $queue_mail_minimum_time = _queue_mail_get_minimum_time();
+        $now = microtime(TRUE);
+        if ($queue_mail_minimum_time > $now) {
+          // Another thread got this, we abort
+          sleep(1);
+          continue;
+        }
+
+        // No that we have locked, set the new value
+        $queue_mail_minimum_time = $now + $wait;
+        cache_set("queue_mail_minimum_time", $queue_mail_minimum_time);
+        lock_release("queue_mail_minimum_time");
+
+        // and break the loop
+        break;
+      }
+
+      // Could not aquire lock, looping... after sleep 1s
+      sleep(1);
+    }
+  }
+  //----------------added by Jon 180905-----------------
 
   // Invoke hook_queue_mail_send_alter() to allow all modules to alter the
   // queued e-mail.
