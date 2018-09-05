@@ -1,3 +1,10 @@
+CRON INFO get your URL from http://localhost/mydrupal/admin/reports/status
+eg something like http://localhost/mydrupal/cron.php?cron_key=lMP7S6A3f5Ue1VvvkFZ6kA-v1AbUIlWUUgaFSN2jeYs
+
+
+
+
+
 Queue mail
 ----------
 Queues all mail sent by your Drupal site so that it is sent via cron
