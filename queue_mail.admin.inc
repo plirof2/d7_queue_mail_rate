@@ -33,6 +33,15 @@ function queue_mail_settings_form() {
     '#default_value' => variable_get('queue_mail_keys', ''),
   );
 
+  //+++++++++++++++ added by Jon 180905 ++++++++++++++++
+  $form['queue_mail_wait'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Mail Queue Waiting Time'),
+    '#description' => t('Time to wait between each sent email (in seconds). It is <strong>strongly</strong> advised to use a parallel cron job manager (e.g. ultimate cron) if using his feature.'),
+    '#default_value' => variable_get('queue_mail_wait', 0),
+  );
+  //----------------added by Jon 180905-----------------
+
   // Get a list of modules that implement hook_mail.
   $mail_modules = module_implements('mail');
   $all_modules = system_list('module_enabled');
